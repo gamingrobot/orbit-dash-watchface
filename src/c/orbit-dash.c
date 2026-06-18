@@ -128,7 +128,14 @@ void on_clock_update(Layer *layer, GContext *ctx)
     fctx_set_fill_color(&fctx, g_settings.ColorDigits);
     fctx_set_text_em_height(&fctx, g_font, HOUR_FONT_SIZE);
     static char hour_buffer[3];
-    strftime(hour_buffer, sizeof(hour_buffer), "%I", &g_local_time);
+    if (clock_is_24h_style())
+    {
+        strftime(hour_buffer, sizeof(hour_buffer), "%H", &g_local_time);
+    }
+    else
+    {
+        strftime(hour_buffer, sizeof(hour_buffer), "%I", &g_local_time);
+    }
     fctx_set_rotation(&fctx, 0);
     fctx_set_offset(&fctx, hour_offset);
     fctx_draw_string(&fctx, hour_buffer, g_font, GTextAlignmentCenter, FTextAnchorMiddle);
