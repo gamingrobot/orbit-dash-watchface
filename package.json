@@ -1,0 +1,50 @@
+{
+  "name": "orbit-dash",
+  "author": "gamingrobot",
+  "version": "1.0.0",
+  "keywords": [
+    "pebble-app",
+    "orbit"
+  ],
+  "private": true,
+  "dependencies": {
+    "@rebble/clay": "1.0.10",
+    "pebble-utf8": "1.0.4",
+    "pebble-fctx": "1.6.5"
+  },
+  "pebble": {
+    "displayName": "Orbit Dash",
+    "uuid": "4b94d011-76a3-4f0d-a833-95dac3c713eb",
+    "sdkVersion": "3",
+    "enableMultiJS": true,
+    "targetPlatforms": [
+      "aplite",
+      "basalt",
+      "chalk",
+      "diorite",
+      "emery",
+      "flint",
+      "gabbro"
+    ],
+    "watchapp": {
+      "watchface": true
+    },
+    "messageKeys": [
+      "COLOR_BACKGROUND",
+      "COLOR_CLOCK",
+      "COLOR_DIGITS"
+    ],
+    "capabilities": [
+      "configurable"
+    ],
+    "resources": {
+      "media": [
+        {
+          "file": "data/din-condensed.ffont",
+          "name": "FONT_DIN_CONDENSED",
+          "type": "raw"
+        }
+      ]
+    }
+  }
+}
