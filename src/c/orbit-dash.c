@@ -97,8 +97,7 @@ void on_clock_update(Layer *layer, GContext *ctx)
     // FPoint seconds_offset = fpoint_add(center, time_offset(second_angle, second_radius));
     int32_t minute_angle = TRIG_MAX_ANGLE * g_local_time.tm_min / 60;
     FPoint minute_offset = fpoint_add(center, time_offset(minute_angle, minute_radius));
-    int32_t hour_angle = TRIG_MAX_ANGLE * g_local_time.tm_hour / 12; // TODO does this need to be 24?
-    // int32_t hour_angle = TRIG_MAX_ANGLE * 6 / 12; //TODO does this need to be 24?
+    int32_t hour_angle = (TRIG_MAX_ANGLE * (((g_local_time.tm_hour % 12) * 6) + (g_local_time.tm_min / 10))) / (12 * 6);
     FPoint hour_offset = fpoint_add(center, time_offset(hour_angle, hour_radius));
 
     FContext fctx;
