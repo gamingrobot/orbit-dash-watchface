@@ -8,7 +8,7 @@ module.exports = [
         "items": [
             {
                 "type": "heading",
-                "defaultValue": "Colors"
+                "defaultValue": "Color"
             },
             {
                 "type": "color",
@@ -27,6 +27,21 @@ module.exports = [
                 "label": "Digit Color",
                 "messageKey": "COLOR_DIGITS",
                 "defaultValue": "000000"
+            }
+        ]
+    },
+    {
+        "type": "section",
+        "items": [
+            {
+                "type": "heading",
+                "defaultValue": "Date"
+            },
+            {
+                "type": "toggle",
+                "label": "Enable Date",
+                "messageKey": "ENABLE_DATE",
+                "defaultValue": true
             }
         ]
     },

@@ -8,14 +8,15 @@
 #include <pebble-fctx/ffont.h>
 #include <pebble-utf8/pebble-utf8.h>
 
+#define SCREENSHOT 0
+
 #define PHI_F 1.618033f
 #define FIXED_TRIG_MAX_RATIO INT_TO_FIXED(TRIG_MAX_RATIO)
 
 #define CLOCK_PADDING 30
 #define DATE_PADDING 25
+
 #define SECOND_DASHES 24
-#define MINUTE_FONT_SIZE 20
-#define HOUR_FONT_SIZE 28
 #define DATE_FONT_SIZE 24
 
 #define SETTINGS_KEY 1
@@ -25,12 +26,30 @@ struct Settings
     GColor ColorBackground;
     GColor ColorClock;
     GColor ColorDigits;
+    bool EnableDate;
 } __attribute__((__packed__)) g_settings;
+
+static void default_settings()
+{
+    g_settings.ColorBackground = GColorOxfordBlue;
+    g_settings.ColorClock = GColorWhite;
+    g_settings.ColorDigits = GColorBlack;
+    g_settings.EnableDate = true;
+}
 
 static Window *g_window;
 static Layer *g_clock;
 static FFont *g_font;
 struct tm g_local_time;
+
+bool show_date()
+{
+#ifdef PBL_ROUND
+    return false;
+#else
+    return g_settings.EnableDate;
+#endif
+}
 
 static inline FPoint time_offset(int32_t angle, fixed_t r)
 {
@@ -78,11 +97,20 @@ void draw_time_circle(FContext *fctx, FPoint center, fixed_t r)
 void on_clock_update(Layer *layer, GContext *ctx)
 {
 
+#if SCREENSHOT
+    g_local_time.tm_hour = 13;
+    g_local_time.tm_min = 50;
+#endif
+
     GRect bounds = layer_get_unobstructed_bounds(layer);
     GRect full_bounds = layer_get_bounds(layer);
+    FPoint center = FPointI(bounds.size.w / 2, bounds.size.h / 2);
+    if (show_date())
+    {
+        center = FPointI(bounds.size.w / 2, bounds.size.h / 2 - CLOCK_PADDING / 2);
+    }
 
-    FPoint center = FPointI(bounds.size.w / 2, bounds.size.h / 2 - CLOCK_PADDING / 2); // TODO dont add padding if date isnt shown
-    fixed_t safe_width = INT_TO_FIXED((bounds.size.w * bounds.size.h / full_bounds.size.h) - CLOCK_PADDING);
+    fixed_t safe_width = INT_TO_FIXED((bounds.size.w * bounds.size.h / full_bounds.size.h) - CLOCK_PADDING - PBL_IF_ROUND_ELSE(4, 0));
     FPoint date_offset = fpoint_add(center, FPoint(0, (safe_width / 2) + INT_TO_FIXED(DATE_PADDING)));
 
     fixed_t second_radius = safe_width * 0.08f;
@@ -92,6 +120,9 @@ void on_clock_update(Layer *layer, GContext *ctx)
     fixed_t second_circle = safe_width * 0.0175f;
     fixed_t minute_circle = safe_width * 0.08f;
     fixed_t hour_circle = hour_radius + second_circle + second_radius - 2.0f * minute_radius;
+
+    int16_t minute_height = FIXED_TO_INT((minute_circle * 2) - (minute_circle / 2));
+    int16_t hour_height = FIXED_TO_INT((hour_circle * 2) - (hour_circle / 2));
 
     // int32_t second_angle = TRIG_MAX_ANGLE * g_local_time.tm_sec / 60;
     // FPoint seconds_offset = fpoint_add(center, time_offset(second_angle, second_radius));
@@ -115,7 +146,7 @@ void on_clock_update(Layer *layer, GContext *ctx)
     /* MINUTE TEXT */
     fctx_begin_fill(&fctx);
     fctx_set_fill_color(&fctx, g_settings.ColorDigits);
-    fctx_set_text_em_height(&fctx, g_font, MINUTE_FONT_SIZE);
+    fctx_set_text_em_height(&fctx, g_font, minute_height);
     static char minute_buffer[3];
     strftime(minute_buffer, sizeof(minute_buffer), "%M", &g_local_time);
     fctx_set_rotation(&fctx, 0);
@@ -126,7 +157,7 @@ void on_clock_update(Layer *layer, GContext *ctx)
     /* HOUR TEXT */
     fctx_begin_fill(&fctx);
     fctx_set_fill_color(&fctx, g_settings.ColorDigits);
-    fctx_set_text_em_height(&fctx, g_font, HOUR_FONT_SIZE);
+    fctx_set_text_em_height(&fctx, g_font, hour_height);
     static char hour_buffer[3];
     if (clock_is_24h_style())
     {
@@ -142,18 +173,21 @@ void on_clock_update(Layer *layer, GContext *ctx)
     fctx_end_fill(&fctx);
 
     /* DATE TEXT */
-    fctx_begin_fill(&fctx);
-    fctx_set_fill_color(&fctx, g_settings.ColorClock);
-    fctx_set_text_em_height(&fctx, g_font, DATE_FONT_SIZE);
+    if (show_date())
+    {
+        fctx_begin_fill(&fctx);
+        fctx_set_fill_color(&fctx, g_settings.ColorClock);
+        fctx_set_text_em_height(&fctx, g_font, DATE_FONT_SIZE);
 
-    static char date_buffer[24];
-    strftime(date_buffer, sizeof(date_buffer), "%a %b %e", &g_local_time);
-    utf8_str_to_upper(date_buffer);
+        static char date_buffer[24];
+        strftime(date_buffer, sizeof(date_buffer), "%a %b %e", &g_local_time);
+        utf8_str_to_upper(date_buffer);
 
-    fctx_set_rotation(&fctx, 0);
-    fctx_set_offset(&fctx, date_offset);
-    fctx_draw_string(&fctx, date_buffer, g_font, GTextAlignmentCenter, FTextAnchorMiddle);
-    fctx_end_fill(&fctx);
+        fctx_set_rotation(&fctx, 0);
+        fctx_set_offset(&fctx, date_offset);
+        fctx_draw_string(&fctx, date_buffer, g_font, GTextAlignmentCenter, FTextAnchorMiddle);
+        fctx_end_fill(&fctx);
+    }
 
     fctx_deinit_context(&fctx);
 }
@@ -169,13 +203,6 @@ static void save_settings()
     persist_write_data(SETTINGS_KEY, &g_settings, sizeof(g_settings));
     window_set_background_color(g_window, g_settings.ColorBackground);
     layer_mark_dirty(g_clock);
-}
-
-static void default_settings()
-{
-    g_settings.ColorBackground = GColorOxfordBlue;
-    g_settings.ColorClock = GColorWhite;
-    g_settings.ColorDigits = GColorBlack;
 }
 
 static void load_settings()
@@ -204,6 +231,19 @@ static void inbox_received_handler(DictionaryIterator *iter, void *context)
         g_settings.ColorDigits = GColorFromHEX(color_digits->value->int32);
     }
 
+    Tuple *enable_date = dict_find(iter, MESSAGE_KEY_ENABLE_DATE);
+    if (enable_date)
+    {
+        if (enable_date->value->int32 == 0)
+        {
+            g_settings.EnableDate = false;
+        }
+        else
+        {
+            g_settings.EnableDate = true;
+        }
+    }
+
     save_settings();
 }
 
@@ -230,7 +270,7 @@ static void init()
     time_t now = time(NULL);
     g_local_time = *localtime(&now);
 
-    tick_timer_service_subscribe(SECOND_UNIT, tick_handler);
+    tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
 }
 
 static void deinit()

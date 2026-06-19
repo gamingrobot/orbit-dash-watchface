@@ -17,6 +17,7 @@
     "uuid": "4b94d011-76a3-4f0d-a833-95dac3c713eb",
     "sdkVersion": "3",
     "enableMultiJS": true,
+    "projectType": "native",
     "targetPlatforms": [
       "aplite",
       "basalt",
@@ -32,7 +33,8 @@
     "messageKeys": [
       "COLOR_BACKGROUND",
       "COLOR_CLOCK",
-      "COLOR_DIGITS"
+      "COLOR_DIGITS",
+      "ENABLE_DATE"
     ],
     "capabilities": [
       "configurable"
