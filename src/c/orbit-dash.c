@@ -42,11 +42,15 @@ static Layer *g_clock;
 static FFont *g_font;
 struct tm g_local_time;
 
-bool show_date()
+bool show_date(GRect bounds, GRect full_bounds)
 {
 #ifdef PBL_ROUND
     return false;
 #else
+    if (full_bounds.size.h > bounds.size.h) //Quickview is on
+    {
+        return false;
+    }
     return g_settings.EnableDate;
 #endif
 }
@@ -105,12 +109,12 @@ void on_clock_update(Layer *layer, GContext *ctx)
     GRect bounds = layer_get_unobstructed_bounds(layer);
     GRect full_bounds = layer_get_bounds(layer);
     FPoint center = FPointI(bounds.size.w / 2, bounds.size.h / 2);
-    if (show_date())
+    if (show_date(bounds, full_bounds))
     {
         center = FPointI(bounds.size.w / 2, bounds.size.h / 2 - CLOCK_PADDING / 2);
     }
 
-    fixed_t safe_width = INT_TO_FIXED((bounds.size.w * bounds.size.h / full_bounds.size.h) - CLOCK_PADDING - PBL_IF_ROUND_ELSE(4, 0));
+    fixed_t safe_width = INT_TO_FIXED((bounds.size.w) - CLOCK_PADDING - PBL_IF_ROUND_ELSE(4, 0));
     FPoint date_offset = fpoint_add(center, FPoint(0, (safe_width / 2) + INT_TO_FIXED(DATE_PADDING)));
 
     fixed_t second_radius = safe_width * 0.08f;
@@ -173,7 +177,7 @@ void on_clock_update(Layer *layer, GContext *ctx)
     fctx_end_fill(&fctx);
 
     /* DATE TEXT */
-    if (show_date())
+    if (show_date(bounds, full_bounds))
     {
         fctx_begin_fill(&fctx);
         fctx_set_fill_color(&fctx, g_settings.ColorClock);
