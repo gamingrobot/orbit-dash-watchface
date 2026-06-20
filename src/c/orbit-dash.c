@@ -93,7 +93,7 @@ void on_clock_update(Layer *layer, GContext *ctx)
 {
 
 #if SCREENSHOT
-    g_local_time.tm_hour = 13;
+    g_local_time.tm_hour = 1;
     g_local_time.tm_min = 50;
 #endif
     // g_local_time.tm_hour = 12;
