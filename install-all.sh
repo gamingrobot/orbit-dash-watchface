@@ -1,0 +1,2 @@
+#!/bin/sh
+pebble install --emulator flint && pebble install --emulator emery && pebble install --emulator gabbro && pebble install --emulator diorite && pebble install --emulator chalk && pebble install --emulator basalt && pebble install --emulator aplite

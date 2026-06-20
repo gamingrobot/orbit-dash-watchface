@@ -1,7 +1,7 @@
 {
   "name": "orbit-dash",
   "author": "gamingrobot",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "keywords": [
     "pebble-app",
     "orbit"
@@ -34,7 +34,8 @@
       "COLOR_BACKGROUND",
       "COLOR_CLOCK",
       "COLOR_DIGITS",
-      "ENABLE_DATE"
+      "ENABLE_DATE",
+      "ENABLE_SECONDS"
     ],
     "capabilities": [
       "configurable"

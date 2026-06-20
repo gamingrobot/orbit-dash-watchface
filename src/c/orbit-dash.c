@@ -13,12 +13,6 @@
 #define PHI_F 1.618033f
 #define FIXED_TRIG_MAX_RATIO INT_TO_FIXED(TRIG_MAX_RATIO)
 
-#define CLOCK_PADDING 30
-#define DATE_PADDING 25
-
-#define SECOND_DASHES 24
-#define DATE_FONT_SIZE 24
-
 #define SETTINGS_KEY 1
 
 struct Settings
@@ -27,6 +21,7 @@ struct Settings
     GColor ColorClock;
     GColor ColorDigits;
     bool EnableDate;
+    bool EnableSeconds;
 } __attribute__((__packed__)) g_settings;
 
 static void default_settings()
@@ -35,6 +30,7 @@ static void default_settings()
     g_settings.ColorClock = GColorWhite;
     g_settings.ColorDigits = GColorBlack;
     g_settings.EnableDate = true;
+    g_settings.EnableSeconds = false;
 }
 
 static Window *g_window;
@@ -42,17 +38,12 @@ static Layer *g_clock;
 static FFont *g_font;
 struct tm g_local_time;
 
-bool show_date(GRect bounds, GRect full_bounds)
+bool show_date(bool quick_view)
 {
 #ifdef PBL_ROUND
     return false;
-#else
-    if (full_bounds.size.h > bounds.size.h) //Quickview is on
-    {
-        return false;
-    }
-    return g_settings.EnableDate;
 #endif
+    return (quick_view) ? false : g_settings.EnableDate;
 }
 
 static inline FPoint time_offset(int32_t angle, fixed_t r)
@@ -105,45 +96,59 @@ void on_clock_update(Layer *layer, GContext *ctx)
     g_local_time.tm_hour = 13;
     g_local_time.tm_min = 50;
 #endif
+    // g_local_time.tm_hour = 12;
+    // g_local_time.tm_min = 0;
 
     GRect bounds = layer_get_unobstructed_bounds(layer);
     GRect full_bounds = layer_get_bounds(layer);
+    bool quick_view = (full_bounds.size.h > bounds.size.h) ? true : false;
+
     FPoint center = FPointI(bounds.size.w / 2, bounds.size.h / 2);
-    if (show_date(bounds, full_bounds))
+    fixed_t safe_width = (bounds.size.w >= bounds.size.h) ? INT_TO_FIXED(bounds.size.w) : INT_TO_FIXED(bounds.size.h);
+    fixed_t clock_width = safe_width * PBL_IF_ROUND_ELSE(0.95f, 0.85f); // scale
+
+    int date_font_size = bounds.size.h / 8;
+    fixed_t date_height = INT_TO_FIXED(date_font_size);
+    if (show_date(quick_view))
     {
-        center = FPointI(bounds.size.w / 2, bounds.size.h / 2 - CLOCK_PADDING / 2);
+        center.y = center.y - date_height / 2;
     }
+    FPoint date_offset = FPoint(center.x, clock_width + date_height / 2);
 
-    fixed_t safe_width = INT_TO_FIXED((bounds.size.w) - CLOCK_PADDING - PBL_IF_ROUND_ELSE(4, 0));
-    FPoint date_offset = fpoint_add(center, FPoint(0, (safe_width / 2) + INT_TO_FIXED(DATE_PADDING)));
+    fixed_t second_radius = clock_width * 0.07f;
+    fixed_t minute_radius = clock_width * 0.19f;
+    fixed_t hour_radius = clock_width * 0.38f;
 
-    fixed_t second_radius = safe_width * 0.08f;
-    fixed_t minute_radius = safe_width * 0.22f;
-    fixed_t hour_radius = minute_radius + (minute_radius - second_radius) * PHI_F;
-
-    fixed_t second_circle = safe_width * 0.0175f;
-    fixed_t minute_circle = safe_width * 0.08f;
-    fixed_t hour_circle = hour_radius + second_circle + second_radius - 2.0f * minute_radius;
+    fixed_t second_circle = clock_width * 0.0175f;
+    fixed_t minute_circle = clock_width * 0.07f;
+    fixed_t hour_circle = clock_width * 0.09f;
 
     int16_t minute_height = FIXED_TO_INT((minute_circle * 2) - (minute_circle / 2));
     int16_t hour_height = FIXED_TO_INT((hour_circle * 2) - (hour_circle / 2));
 
-    // int32_t second_angle = TRIG_MAX_ANGLE * g_local_time.tm_sec / 60;
-    // FPoint seconds_offset = fpoint_add(center, time_offset(second_angle, second_radius));
-    int32_t minute_angle = TRIG_MAX_ANGLE * g_local_time.tm_min / 60;
+    int second_angle = TRIG_MAX_ANGLE * g_local_time.tm_sec / 60;
+    FPoint seconds_offset = fpoint_add(center, time_offset(second_angle, second_radius));
+    int minute_angle = TRIG_MAX_ANGLE * g_local_time.tm_min / 60;
     FPoint minute_offset = fpoint_add(center, time_offset(minute_angle, minute_radius));
-    int32_t hour_angle = (TRIG_MAX_ANGLE * (((g_local_time.tm_hour % 12) * 6) + (g_local_time.tm_min / 10))) / (12 * 6);
+    int hour_angle = (TRIG_MAX_ANGLE * (((g_local_time.tm_hour % 12) * 6) + (g_local_time.tm_min / 10))) / (12 * 6);
     FPoint hour_offset = fpoint_add(center, time_offset(hour_angle, hour_radius));
 
     FContext fctx;
     fctx_init_context(&fctx, ctx);
     fctx_set_color_bias(&fctx, 0);
 
-    // draw_dashed_circle(&fctx, center, second_radius, INT_TO_FIXED(2), INT_TO_FIXED(2), SECOND_DASHES);
-    draw_dashed_circle(&fctx, center, minute_radius, INT_TO_FIXED(2), INT_TO_FIXED(3), SECOND_DASHES * PHI_F);
-    draw_dashed_circle(&fctx, center, hour_radius, INT_TO_FIXED(2), INT_TO_FIXED(5), SECOND_DASHES * PHI_F * PHI_F);
+    int second_dashes = FIXED_TO_INT(clock_width / 10);
+    if (g_settings.EnableSeconds)
+    {
+        draw_dashed_circle(&fctx, center, second_radius, INT_TO_FIXED(2), INT_TO_FIXED(2), second_dashes);
+    }
+    draw_dashed_circle(&fctx, center, minute_radius, INT_TO_FIXED(2), INT_TO_FIXED(3), second_dashes * PHI_F);
+    draw_dashed_circle(&fctx, center, hour_radius, INT_TO_FIXED(2), INT_TO_FIXED(5), second_dashes * PHI_F * PHI_F);
 
-    // draw_time_circle(&fctx, seconds_offset, second_circle);
+    if (g_settings.EnableSeconds)
+    {
+        draw_time_circle(&fctx, seconds_offset, second_circle);
+    }
     draw_time_circle(&fctx, minute_offset, minute_circle);
     draw_time_circle(&fctx, hour_offset, hour_circle);
 
@@ -177,11 +182,11 @@ void on_clock_update(Layer *layer, GContext *ctx)
     fctx_end_fill(&fctx);
 
     /* DATE TEXT */
-    if (show_date(bounds, full_bounds))
+    if (show_date(quick_view))
     {
         fctx_begin_fill(&fctx);
         fctx_set_fill_color(&fctx, g_settings.ColorClock);
-        fctx_set_text_em_height(&fctx, g_font, DATE_FONT_SIZE);
+        fctx_set_text_em_height(&fctx, g_font, date_font_size);
 
         static char date_buffer[24];
         strftime(date_buffer, sizeof(date_buffer), "%a %b %e", &g_local_time);
@@ -202,10 +207,23 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed)
     layer_mark_dirty(g_clock);
 }
 
+static void register_tick_timer()
+{
+    if (g_settings.EnableSeconds)
+    {
+        tick_timer_service_subscribe(SECOND_UNIT, tick_handler);
+    }
+    else
+    {
+        tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
+    }
+}
+
 static void save_settings()
 {
     persist_write_data(SETTINGS_KEY, &g_settings, sizeof(g_settings));
     window_set_background_color(g_window, g_settings.ColorBackground);
+    register_tick_timer();
     layer_mark_dirty(g_clock);
 }
 
@@ -248,6 +266,19 @@ static void inbox_received_handler(DictionaryIterator *iter, void *context)
         }
     }
 
+    Tuple *enable_seconds = dict_find(iter, MESSAGE_KEY_ENABLE_SECONDS);
+    if (enable_seconds)
+    {
+        if (enable_seconds->value->int32 == 0)
+        {
+            g_settings.EnableSeconds = false;
+        }
+        else
+        {
+            g_settings.EnableSeconds = true;
+        }
+    }
+
     save_settings();
 }
 
@@ -274,7 +305,7 @@ static void init()
     time_t now = time(NULL);
     g_local_time = *localtime(&now);
 
-    tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
+    register_tick_timer();
 }
 
 static void deinit()

@@ -35,6 +35,21 @@ module.exports = [
         "items": [
             {
                 "type": "heading",
+                "defaultValue": "Clock"
+            },
+            {
+                "type": "toggle",
+                "label": "Enable Seconds",
+                "messageKey": "ENABLE_SECONDS",
+                "defaultValue": false
+            }
+        ]
+    },
+    {
+        "type": "section",
+        "items": [
+            {
+                "type": "heading",
                 "defaultValue": "Date"
             },
             {
